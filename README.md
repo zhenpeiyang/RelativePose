@@ -16,6 +16,11 @@ RelativePose
     experiments
 ```
 
+# data download
+images: [suncg](https://www.google.com),[matterport](https://www.google.com),[scannet](https://www.google.com)
+dataList: [suncg](https://www.google.com),[matterport](https://www.google.com),[scannet](https://www.google.com)
+pretrained model: [suncg](https://www.google.com),[matterport](https://www.google.com),[scannet](https://www.google.com)
+
 # training feature network
 ## suncg
 python mainFeatureLearning.py --exp featSuncg --g --batch_size=2 --featurelearning=1 --maskMethod=second --resume --dataList=suncg --outputType=rgbdnsf --snumclass=15
