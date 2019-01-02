@@ -22,7 +22,7 @@ from opts import opts
 from utils.dotdict import *
 from quaternion import *
 from utils.factory import trainer
-from model.context_encoder import Resnet18_8s,segmentation_layer
+from model.mymodel import Resnet18_8s,segmentation_layer
 from utils.callbacks import PeriodicCallback, OnceCallback, ScheduledCallback,CallbackLoc
 from sklearn.decomposition import PCA
 

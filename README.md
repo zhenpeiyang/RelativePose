@@ -10,7 +10,7 @@ Pytorch implementation of paper ["Extreme Relative Pose Estimation for RGB-D Sca
 * scipy,sklearn
 
 ##  Folder Organization
-please ensure to have following folder structure:
+please make sure to have following folder structure:
 ``` shell
 RelativePose/
     data/
@@ -21,8 +21,8 @@ RelativePose/
     tmp/
 ```
 
-##  data download
-TBD...
+##  Dataset Download
+uploading soon
 
 images: [suncg](https://www.google.com),[matterport](https://www.google.com),[scannet](https://www.google.com)<br/>
 data list: [suncg](https://www.google.com),[matterport](https://www.google.com),[scannet](https://www.google.com)<br/>
@@ -54,7 +54,7 @@ python mainPanoCompletion2view.py --exp compScannet  --g --batch_size=2 --featur
 python trainRelativePoseModuleRecFD.py --exp fd_param --dataset=suncg --snumclass=15 --split=val --para_init={param for previous iter} --rlevel={recurrent level}
 ```
 
-The trained parameters for relative pose module is provided in data/relativePoseModule/
+The trained parameters for relative pose module are provided in data/relativePoseModule/
 
 ## Evaluation
 ```

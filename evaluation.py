@@ -13,7 +13,7 @@ import util
 from RPModule.rpmodule import RelativePoseEstimation,getMatchingPrimitive,RelativePoseEstimation_helper
 from RPModule.rputil import opts
 import argparse
-from model.context_encoder import SCNet
+from model.mymodel import SCNet
 import time
 from baselines import super4pcs, open3d_global_registration, open3d_fast_global_registration,open3d_color_registration
 from open3d import *
