@@ -12,55 +12,49 @@ Pytorch implementation of paper ["Extreme Relative Pose Estimation for RGB-D Sca
 ##  Folder Organization
 please ensure to have following folder structure:
 ``` shell
-RelativePose
-    data
-        dataList
-    tmp
-    experiments
+RelativePose/
+    data/
+        dataList/
+        relativePoseModule/
+        pretrained_model/
+    experiments/
+    tmp/
 ```
 
 ##  data download
-images: [suncg](https://www.google.com),[matterport](https://www.google.com),[scannet](https://www.google.com)<br/>
-dataList: [suncg](https://www.google.com),[matterport](https://www.google.com),[scannet](https://www.google.com)<br/>
-pretrained model: [suncg](https://www.google.com),[matterport](https://www.google.com),[scannet](https://www.google.com)<br/>
+TBD...
 
+images: [suncg](https://www.google.com),[matterport](https://www.google.com),[scannet](https://www.google.com)<br/>
+data list: [suncg](https://www.google.com),[matterport](https://www.google.com),[scannet](https://www.google.com)<br/>
+pretrained model: [suncg](https://www.google.com),[matterport](https://www.google.com),[scannet](https://www.google.com)<br/>
+Images should be uncompressed under data/ folder. The data list contains the split used in our experiments, and should be placed under data/dataList/ folder. The pretrained model should be placed under data/pretrained_model/ folder. 
 ## Usage
 ### training feature network
-#### suncg
 ```
 # suncg 
 python mainFeatureLearning.py --exp featSuncg --g --batch_size=2 --featurelearning=1 --maskMethod=second --resume --dataList=suncg --outputType=rgbdnsf --snumclass=15
 # matterport 
 python mainFeatureLearning.py --exp featMatterport --g --batch_size=2 --featurelearning=1 --maskMethod=second --resume --dataList=matterport --outputType=rgbdnsf --snumclass=15
-# matterport 
-python mainFeatureLearning.py --exp featMatterport --g --batch_size=2 --featurelearning=1 --maskMethod=second --resume --dataList=matterport --outputType=rgbdnsf --snumclass=15
-```
-#### matterport
-```
-python mainFeatureLearning.py --exp featMatterport --g --batch_size=2 --featurelearning=1 --maskMethod=second --resume --dataList=matterport --outputType=rgbdnsf --snumclass=15
-```
-#### scannet
-```
+# scannet 
 python mainFeatureLearning.py --exp featScannet --g --batch_size=2 --featurelearning=1 --maskMethod=kinect --resume --dataList=scannet --outputType=rgbdnsf --snumclass=21
 ```
 
 ### training completion module
-#### suncg
 ```
+# suncg 
 python mainPanoCompletion2view.py --exp compSuncg--g --batch_size=2 --featurelearning=1 --maskMethod=second --resume --dataList=suncg --outputType=rgbdnsf --snumclass=15
-```
-#### matterport
-```
+# matterport 
 python mainPanoCompletion2view.py --exp compMatterport --g --batch_size=2 --featurelearning=1 --maskMethod=second --resume --dataList=matterport --outputType=rgbdnsf --snumclass=15
-```
-#### scannet
-```
+# scannet 
 python mainPanoCompletion2view.py --exp compScannet  --g --batch_size=2 --featurelearning=1 --maskMethod=kinect --resume --dataList=scannet --outputType=rgbdnsf --snumclass=21 --useTanh=0
 ```
+
 ### train relative pose module
 ```
 python trainRelativePoseModuleRecFD.py --exp fd_param --dataset=suncg --snumclass=15 --split=val --para_init={param for previous iter} --rlevel={recurrent level}
 ```
+
+The trained parameters for relative pose module is provided in data/relativePoseModule/
 
 ## Evaluation
 ```
