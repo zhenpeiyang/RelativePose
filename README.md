@@ -28,7 +28,12 @@ pretrained model: [suncg](https://www.google.com),[matterport](https://www.googl
 ### training feature network
 #### suncg
 ```
+# suncg 
 python mainFeatureLearning.py --exp featSuncg --g --batch_size=2 --featurelearning=1 --maskMethod=second --resume --dataList=suncg --outputType=rgbdnsf --snumclass=15
+# matterport 
+python mainFeatureLearning.py --exp featMatterport --g --batch_size=2 --featurelearning=1 --maskMethod=second --resume --dataList=matterport --outputType=rgbdnsf --snumclass=15
+# matterport 
+python mainFeatureLearning.py --exp featMatterport --g --batch_size=2 --featurelearning=1 --maskMethod=second --resume --dataList=matterport --outputType=rgbdnsf --snumclass=15
 ```
 #### matterport
 ```
