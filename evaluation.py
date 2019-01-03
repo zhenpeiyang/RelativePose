@@ -112,6 +112,8 @@ if __name__ == '__main__':
     args = _parse_args()
     log = logging.getLogger(__name__)
 
+    if not os.path.exists("tmp/rpe"):
+        os.makedirs("tmp/rpe")
     exp_dir = f"tmp/rpe/{args.exp}"
     if not os.path.exists(exp_dir):
         os.makedirs(exp_dir)

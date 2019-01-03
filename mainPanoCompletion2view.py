@@ -21,7 +21,7 @@ from opts import opts
 from utils.dotdict import *
 from quaternion import *
 from utils.factory import trainer
-from model.context_encoder import Resnet18_8s, SCNet
+from model.mymodel import Resnet18_8s, SCNet
 from utils.callbacks import PeriodicCallback, OnceCallback, ScheduledCallback,CallbackLoc
 import copy
 from sklearn.decomposition import PCA

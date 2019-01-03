@@ -12,7 +12,7 @@ import util
 from torch.utils.data import DataLoader
 import os
 import torch
-from model.context_encoder import SCNet
+from model.mymodel import SCNet
 from utils import torch_op
 import copy
 
@@ -65,6 +65,8 @@ else:
 
 args.para=opts(para_val[:,0],para_val[:,1],para_val[:,2],para_val[:,3])
 
+if not os.path.exists("./data/relativePoseModule/"):
+    os.makedirs("./data/relativePoseModule/")
 primitive_file = f"./data/relativePoseModule/final_{args.dataset}_rlevel_{args.rlevel}.npy"
 if os.path.exists(primitive_file):
     primitives=np.load(primitive_file)
