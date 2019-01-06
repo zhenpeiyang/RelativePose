@@ -8,6 +8,7 @@ Pytorch implementation of paper ["Extreme Relative Pose Estimation for RGB-D Sca
 * pytorch (>0.4)
 * open3d
 * scipy,sklearn
+* [torchvision](https://github.com/warmspringwinds/vision/tree/eb6c13d3972662c55e752ce7a376ab26a1546fb5)
 
 ##  Folder Organization
 please make sure to have following folder structure:

@@ -51,6 +51,13 @@ def apply_mask(x,maskMethod,*arg):
         dist=np.exp(-dist/(2*sigmaGeom**2))
         dist[:,h:2*h]=0
         geow = torch_op.v(np.tile(np.reshape(dist,[1,1,dist.shape[0],dist.shape[1]]),[geow.shape[0],1,1,1]))
+    elif maskMethod == 'kinect':
+        dw = int(89.67//2)
+        dh = int(67.25//2)
+        tp[:,:,80-dh:80+dh,160+80-dw:160+80+dw]=1
+        geow = tp.copy()*20
+        geow[tp==0]=1
+        geow = torch_op.v(geow)
 
     tp=torch_op.v(tp)
     x=x*tp
@@ -367,8 +374,6 @@ class learner(object):
             
         return ratiosObs,ratiosUnobs,plot_all
 
-
-
     def step(self,data,mode='train'):
         torch.cuda.empty_cache()
         if self.speed_benchmark:
@@ -392,9 +397,8 @@ class learner(object):
             complete0=torch.cat((rgb[:,0,:,:,:],norm[:,0,:,:,:],depth[:,0:1,:,:]),1)
             complete1=torch.cat((rgb[:,1,:,:,:],norm[:,1,:,:,:],depth[:,1:2,:,:]),1)
             
-            view0,mask0,geow0 = apply_mask(complete0.clone(),self.args.maskMethod,self.args.ObserveRatio)
-            view1,mask1,geow1 = apply_mask(complete1.clone(),self.args.maskMethod,self.args.ObserveRatio)
-            view=torch.cat((view0,view1))
+            _,mask0,_ = apply_mask(complete0.clone(),self.args.maskMethod,self.args.ObserveRatio)
+            _,mask1,_ = apply_mask(complete1.clone(),self.args.maskMethod,self.args.ObserveRatio)
             mask=torch.cat((mask0,mask1))
 
             # mask the pano

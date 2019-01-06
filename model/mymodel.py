@@ -260,7 +260,7 @@ class SCNet(nn.Module):
         inShape = x.shape[2:]
         x=torch.nn.functional.upsample(x,[224,224],mode='bilinear',align_corners=False)
         # x:[n,c,h,w]
-        # decompose the input into [rgb,normal,depth]
+        # decompose the input into [rgb,normal,depth,mask]
         rgb,norm,depth,mask=x[:,0:3,:,:],x[:,3:6,:,:],x[:,6:7,:,:],x[:,7:8,:,:]
         rgb_t2s,norm_t2s,depth_t2s,mask_t2s=x[:,8+0:8+3,:,:],x[:,8+3:8+6,:,:],x[:,8+6:8+7,:,:],x[:,8+7:8+8,:,:]
         xrgb1 = self.conv1rgb(torch.cat((rgb,mask),1))

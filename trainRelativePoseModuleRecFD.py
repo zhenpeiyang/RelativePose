@@ -23,6 +23,7 @@ parser.add_argument('--exp', type=str,default='sp_param',help='add identifier fo
 parser.add_argument('--rm', action='store_true',help='add identifier for this experiment')
 parser.add_argument('--maskMethod',type=str,default='second', help = 'suncg/matterport:second, scannet:kinect')
 parser.add_argument('--alterStep', type=int,default=3,help='add identifier for this experiment')
+parser.add_argument('--max_iter', type = int, default=30,help = 'max train step')
 
 # net specification
 parser.add_argument('--batchnorm', type = int, default = 1, help = 'whether to use batch norm in completion network') # 1
@@ -58,6 +59,7 @@ state_dict = checkpoint['state_dict']
 net.load_state_dict(state_dict)
 net.cuda()
 
+# load parameters for pairwise matching algo
 if args.para_init is not None:
     para_val = np.loadtxt(args.para_init).reshape(-1,4)
 else:
@@ -67,6 +69,8 @@ args.para=opts(para_val[:,0],para_val[:,1],para_val[:,2],para_val[:,3])
 
 if not os.path.exists("./data/relativePoseModule/"):
     os.makedirs("./data/relativePoseModule/")
+
+# cache the matching primitives 
 primitive_file = f"./data/relativePoseModule/final_{args.dataset}_rlevel_{args.rlevel}.npy"
 if os.path.exists(primitive_file):
     primitives=np.load(primitive_file)
@@ -91,7 +95,6 @@ else:
     loader = DataLoader(val_dataset, batch_size=1, shuffle=False,num_workers=1,drop_last=True,collate_fn=util.collate_fn_cat, worker_init_fn=util.worker_init_fn)
     primitives=[]
     for i, data in enumerate(loader):
-        if i>100:break
         R=torch_op.npy(data['R'])
         R_src = R[0,0,:,:]
         R_tgt = R[0,1,:,:]
@@ -239,8 +242,7 @@ sigmaAngle2_cur = sigmaAngle2_init
 sigmaDist_cur   = sigmaDist_init
 sigmaFeat_cur   = sigmaFeat_init
 
-
-for i in range(30):
+for i in range(args.max_iter):
     N = 10
     epsilon = np.zeros([N,4])
     losses = np.zeros([N])
@@ -294,8 +296,6 @@ for i in range(30):
     print(f"{loss_best} {ad_best} {sigmaAngle1_cur} {sigmaAngle2_cur} {sigmaDist_cur} {sigmaFeat_cur}")
     with open(f"{args.exp}.txt",'a') as f:
         f.write(f"{loss_best} {ad_best} {sigmaAngle1_cur} {sigmaAngle2_cur} {sigmaDist_cur} {sigmaFeat_cur}\n")
-
-print(losses)
 
 
 

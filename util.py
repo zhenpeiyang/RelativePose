@@ -305,11 +305,10 @@ def horn87_np_v2(src, tgt,weight=None):
     else:
         has_weight=True
         weight = weight.reshape(k,1,nPts)
-    #weight = weight / weight.sum(2,keepdims=True)
+
     src_ = src
     tgt_ = tgt
 
-    #import ipdb;ipdb.set_trace()
     if has_weight:
         tgt_ = tgt_.copy()
         for i in range(k):
@@ -438,7 +437,6 @@ def rot2Quaternion(rot):
         qy = (rot[1,2] + rot[2,1]) / S
         qx = 0.25 * S
 
-    #return np.array([qw, qx, qy, qz])
     return np.array([qw, qz, qy, qx])
 
 def quaternion2Rot(q):
@@ -510,28 +508,6 @@ def depth2pc(depth,dataList):
             xs=xs.flatten()[mask]*zs/(0.8921875*2)
             ys=ys.flatten()[mask]*zs/(1.1895*2)
             pc = np.stack((xs,ys,-zs),1)
-        elif (depth.shape[0] == 240 and depth.shape[1] == 320):
-            w,h = depth.shape[1], depth.shape[0]
-            # transform from ith frame to 0th frame
-            ys, xs = np.meshgrid(range(h),range(w),indexing='ij')
-            ys, xs = (0.5-ys / h)*2, (xs / w-0.5)*2
-            zs = depth.flatten()
-            mask = (zs!=0)
-            zs = zs[mask]
-            xs=xs.flatten()[mask]*zs/(0.8921875)
-            ys=ys.flatten()[mask]*zs/(1.1895)
-            pc = np.stack((xs,ys,-zs),1)
-        elif (depth.shape[0] == 120 and depth.shape[1] == 160):
-            w,h = depth.shape[1], depth.shape[0]
-            # transform from ith frame to 0th frame
-            ys, xs = np.meshgrid(range(h),range(w),indexing='ij')
-            ys, xs = (0.5-ys / h)*2, (xs / w-0.5)*2
-            zs = depth.flatten()
-            mask = (zs!=0)
-            zs = zs[mask]
-            xs=xs.flatten()[mask]*zs/(0.8921875)
-            ys=ys.flatten()[mask]*zs/(1.1895)
-            pc = np.stack((xs/2,ys/2,-zs),1)
         elif (depth.shape[0] == 66 and depth.shape[1] == 88):
             w,h = depth.shape[1], depth.shape[0]
             # transform from ith frame to 0th frame
@@ -546,7 +522,6 @@ def depth2pc(depth,dataList):
 
     return pc,mask
 
-
 def PanoIdx(index,h,w):
     total=h*w
     single=total//4
@@ -558,102 +533,6 @@ def PanoIdx(index,h,w):
     idx[:,0]=xs
     idx[:,1]=ys
     return idx
-
-def panodepth2pc(depth,representation,dataList):
-    if representation == 'skybox':
-        if 'suncg' in dataList:
-            w,h = depth.shape[1], depth.shape[0]
-            assert(w//4 == h)
-            # transform from ith frame to 0th frame
-            Rs = np.zeros([4,4,4])
-            Rs[0] = np.eye(4)
-            Rs[1] = np.array([[0,0,-1,0],[0,1,0,0],[1,0,0,0],[0,0,0,1]])
-            Rs[2] = np.array([[-1,0,0,0],[0,1,0,0],[0,0,-1,0],[0,0,0,1]])
-            Rs[3] = np.array([[0,0,1,0],[0,1,0,0],[-1,0,0,0],[0,0,0,1]])
-            pcs=[]
-            masks=[]
-            for i in range(4):
-                depth_this=depth[:,i*h:(i+1)*h]
-                ys, xs = np.meshgrid(range(h),range(h),indexing='ij')
-                ys, xs = (0.5-ys / h)*2, (xs / h-0.5)*2
-                zs = depth_this.flatten()
-                mask = (zs!=0)
-                xs,ys,zs=xs.flatten()[mask],ys.flatten()[mask],zs[mask]
-                xs=xs*zs
-                ys=ys*zs
-                pc = np.stack((xs,ys,-zs),1)
-                pc=np.matmul(Rs[i][:3,:3],pc.T).T
-                pcs.append(pc)
-                masks.append(mask)
-            pcs=np.concatenate(pcs)
-            mask=np.concatenate(masks)
-        elif 'matterport' in dataList:
-            w,h = depth.shape[1], depth.shape[0]
-            assert(w//4 == h)
-            # transform from ith frame to 0th frame
-            Rs = np.zeros([4,4,4])
-            Rs[0] = np.eye(4)
-            Rs[1] = np.array([[0,0,-1,0],[0,1,0,0],[1,0,0,0],[0,0,0,1]])
-            Rs[2] = np.array([[-1,0,0,0],[0,1,0,0],[0,0,-1,0],[0,0,0,1]])
-            Rs[3] = np.array([[0,0,1,0],[0,1,0,0],[-1,0,0,0],[0,0,0,1]])
-            pcs=[]
-            masks=[]
-            for i in range(4):
-                depth_this=depth[:,i*h:(i+1)*h]
-                ys, xs = np.meshgrid(range(h),range(h),indexing='ij')
-                ys, xs = (0.5-ys / h)*2, (xs / h-0.5)*2
-                zs = depth_this.flatten()
-                mask = (zs!=0)
-                xs,ys,zs=xs.flatten()[mask],ys.flatten()[mask],zs[mask]
-                xs=xs*zs
-                ys=ys*zs
-                pc = np.stack((xs,ys,-zs),1)
-                pc=np.matmul(Rs[(i-1)%4][:3,:3],pc.T).T
-                pcs.append(pc)
-                masks.append(mask)
-            pcs=np.concatenate(pcs)
-            mask=np.concatenate(masks)
-        elif 'scannet' in dataList:
-            w,h = depth.shape[1], depth.shape[0]
-            assert(w//4 == h)
-            # transform from ith frame to 0th frame
-            Rs = np.zeros([4,4,4])
-            Rs[0] = np.eye(4)
-            Rs[1] = np.array([[0,0,-1,0],[0,1,0,0],[1,0,0,0],[0,0,0,1]])
-            Rs[2] = np.array([[-1,0,0,0],[0,1,0,0],[0,0,-1,0],[0,0,0,1]])
-            Rs[3] = np.array([[0,0,1,0],[0,1,0,0],[-1,0,0,0],[0,0,0,1]])
-            pcs=[]
-            masks=[]
-            for i in range(4):
-                depth_this=depth[:,i*h:(i+1)*h]
-                ys, xs = np.meshgrid(range(h),range(h),indexing='ij')
-                ys, xs = (0.5-ys / h)*2, (xs / h-0.5)*2
-                zs = depth_this.flatten()
-                mask = (zs!=0)
-                xs,ys,zs=xs.flatten()[mask],ys.flatten()[mask],zs[mask]
-                xs=xs*zs
-                ys=ys*zs
-                pc = np.stack((xs,ys,-zs),1)
-                pc=np.matmul(Rs[(i-1)%4][:3,:3],pc.T).T
-                pcs.append(pc)
-                masks.append(mask)
-            pcs=np.concatenate(pcs)
-            mask=np.concatenate(masks)
-    elif representation == 'expand':
-        w,h = depth.shape[1], depth.shape[0]
-        #assert(w == 640 and h == 240)
-        assert(w == 320 and h == 240)
-        ys, xs = np.meshgrid(range(h),range(w),indexing='ij')
-        ys, xs = (0.5-ys / h)*2, (xs / w-0.5)*2
-        zs = depth.flatten()
-        xs = xs.flatten()
-        ys = ys.flatten()
-        mask = (zs!=0)
-        xs,ys,zs=xs[mask],ys[mask],zs[mask]
-        xs=xs.flatten()*zs/0.89218745
-        ys=ys.flatten()*zs/1.18958327
-        pcs = np.stack((xs,ys,-zs),1)
-    return pcs,mask
 
 def reproj_helper(pct,colorpct,out_shape,mode,dataList):
     if 'suncg' in dataList:
@@ -798,7 +677,6 @@ def reproj_helper(pct,colorpct,out_shape,mode,dataList):
         proj[coordb[1,:],coordb[0,:]]=colorb
         proj[coordr[1,:],coordr[0,:]]=colorr
     elif 'scannet' in dataList:
-
         Rs = np.zeros([4,4,4])
         Rs[0] = np.eye(4)
         Rs[1] = np.array([[0,0,-1,0],[0,1,0,0],[1,0,0,0],[0,0,0,1]])
@@ -871,6 +749,9 @@ def reproj_helper(pct,colorpct,out_shape,mode,dataList):
     return proj
     
 def Pano2PointCloud(depth,dataList):
+    # The order of rendered 4 view are different between suncg and scannet/matterport. 
+    # Hacks to separately deal with each dataset and get the corrected assembled point cloud.
+    # TODO: FIX THE DATASET INCONSISTENCY
     if 'suncg' in dataList:
         assert(depth.shape[0]==160 and depth.shape[1]==640)
         Rs = np.zeros([4,4,4])
@@ -929,7 +810,6 @@ def Pano2PointCloud(depth,dataList):
         pc = np.concatenate(pc,1)
     return pc
 
-
 def saveimg(kk,filename='test.png'):
     cv2.imwrite(filename,(kk-kk.min())/(kk.max()-kk.min())*255)
 
@@ -947,7 +827,6 @@ def pnlayer(depth,normal,plane,dataList,representation):
         Rs=torch_op.v(Rs)
         loss_pn=0
         for i in range(4):
-            import ipdb;ipdb.set_trace()
             plane_this=plane[:,0,:,i*h:(i+1)*h].contiguous()
             depth_this=depth[:,0,:,i*h:(i+1)*h].contiguous()
             ys, xs = np.meshgrid(range(h),range(h),indexing='ij')
@@ -975,38 +854,8 @@ def pnlayer(depth,normal,plane,dataList,representation):
             pcD = torch.stack((xs,ys,-zs),1)
             loss_pn+=(pcD-pcPn).clamp(-5,5).abs().mean()
     elif 'scannet' in dataList:
-        if representation == 'expand':
-            n,h,w = depth.shape[0],depth.shape[2],depth.shape[3]
-            loss_pn = 0
-            for ii in range(n):
-                plane_this=plane[ii,0,:,:].contiguous()
-                depth_this=depth[ii,0,:,:].contiguous()
-                
-                mask = (depth_this.view(-1)!=0)
-                masknpy = torch_op.npy(mask).astype('bool')
+        raise Exception("not implemented: scannet/skybox representation")
 
-                ys, xs = np.meshgrid(range(h),range(w),indexing='ij')
-                ys, xs = (0.5-ys / h)*2, (xs / w-0.5)*2
-                xs = xs.flatten()
-                ys = ys.flatten()
-                zs = plane_this.view(-1)
-                zs = zs[mask]
-                xs = xs[masknpy]
-                ys = ys[masknpy]
-                normal_this=normal[ii].permute(1,2,0).contiguous().view(-1,3)
-                ray = np.stack((-xs/0.89218745,-ys/1.18958327,np.ones(len(xs))),1)
-                ray = torch_op.v(ray)
-                pcPn=(zs/(ray*normal_this[mask]+1e-6).sum(1)).unsqueeze(1)*ray
-                
-                zs = depth_this.view(-1)
-                zs = zs[mask]
-                xs=torch_op.v(xs)
-                ys=torch_op.v(ys)
-                xs=xs*zs/0.89218745
-                ys=ys*zs/1.18958327
-                pcD = torch.stack((xs,ys,-zs),1)
-                loss_pn+=(pcD-pcPn).clamp(-5,5).abs().mean()
-            
     return loss_pn
 
 def COSINELoss(input, target):
@@ -1023,7 +872,6 @@ def pad_tensor(vec, pad, dim):
     return:
         a new tensor padded to 'pad' in dimension 'dim'
     """
-    import ipdb;ipdb.set_trace()
     pad_size = list(vec.shape)
     pad_size[dim] = pad - vec.size(dim)
     return torch.cat([vec, torch.zeros(*pad_size)], dim=dim)
