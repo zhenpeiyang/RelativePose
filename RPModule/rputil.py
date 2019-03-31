@@ -29,7 +29,7 @@ def angular_distance_np(R_hat, R):
     if len(R.shape)==2:
         R=R[np.newaxis,:]
     n = R.shape[0]
-    trace_idx = [0,4,8]
+    trace_idx = [0, 4, 8]
     trace = np.matmul(R_hat, R.transpose(0,2,1)).reshape(n,-1)[:,trace_idx].sum(1)
     metric = np.arccos(((trace - 1)/2).clip(-1,1)) / np.pi * 180.0
     return metric
@@ -44,9 +44,9 @@ def interpolate(feat, pt):
     # feat: c,h,w
     # pt: K,2
     # return: c,k
-    h,w = feat.shape[1],feat.shape[2]
-    x = pt[:,0]*(w-1)
-    y = pt[:,1]*(h-1)
+    h,w = feat.shape[1], feat.shape[2]
+    x = pt[:,0] * (w-1)
+    y = pt[:,1] * (h-1)
     x0 = torch.floor(x)
     y0 = torch.floor(y)
 
@@ -60,10 +60,10 @@ def interpolate(feat, pt):
 
 def getPixel_helper(depth,xs,ys,val,dataset='suncg',representation='skybox'):
     assert(representation == 'skybox')
-    assert(depth.shape[0]==160 and depth.shape[1]==640)
-    w,h=160,160
-    
-    Rs = np.zeros([4,4,4])
+    W, H = 160,160
+    assert(depth.shape[0] == H and depth.shape[1]== H*4 )
+
+    Rs = np.zeros([4, 4, 4])
     Rs[0] = np.eye(4)
     Rs[1] = np.array([[0,0,-1,0],[0,1,0,0],[1,0,0,0],[0,0,0,1]])
     Rs[2] = np.array([[-1,0,0,0],[0,1,0,0],[0,0,-1,0],[0,0,0,1]])
@@ -71,18 +71,18 @@ def getPixel_helper(depth,xs,ys,val,dataset='suncg',representation='skybox'):
     
     pc = []
     for i in range(len(xs)):
-        idx = int(xs[i]//160)
+        idx = int(xs[i] // H)
         if 'suncg' in dataset:
-            R_this=Rs[idx]
+            R_this = Rs[idx]
         elif 'scannet' in dataset or 'matterport' in dataset:
-            R_this=Rs[(idx-1)%4]
-        ystp, xstp = (0.5-ys[i] / h)*2, ((xs[i]-idx*160) / w-0.5)*2
+            R_this = Rs[(idx-1)%4]
+        ystp, xstp = (0.5 - ys[i] / H)*2, ((xs[i]- idx * H) / W-0.5)*2
         zstp = val[i]
-        ystp, xstp = ystp*zstp, xstp*zstp
-        tmp = np.concatenate(([xstp],[ystp],[-zstp]))
-        tmp = np.matmul(R_this[:3,:3],tmp)+R_this[:3,3]
+        ystp, xstp = ystp * zstp, xstp * zstp
+        tmp = np.concatenate(([xstp], [ystp], [-zstp]))
+        tmp = np.matmul(R_this[:3, :3],tmp) + R_this[:3, 3]
         pc.append(tmp)
-    pc = np.concatenate(pc).reshape(-1,3)
+    pc = np.concatenate(pc).reshape(-1, 3)
     return pc
 
 def getPixel(depth, normal, pts, dataset='suncg',representation='skybox'):
@@ -139,218 +139,233 @@ def drawMatch(img0,img1,src,tgt,color='b'):
     return img
 
 def getKeypoint(rs,rt,feats,featt):
-    h,w=160,640
-    grays= cv2.cvtColor(rs,cv2.COLOR_BGR2GRAY)
-    grayt= cv2.cvtColor(rt,cv2.COLOR_BGR2GRAY)
-
-    sift = cv2.xfeatures2d.SIFT_create(contrastThreshold=0.02)
+    H, W         = 160, 640
+    N_SIFT_MATCH = 30
+    N_RANDOM     = 30
+    MARKER       = 0.99
+    SIFT_THRE    = 0.02
+    TOPK         = 2
     
-    grays=grays[:,160:160*2]
+    grays = cv2.cvtColor(rs, cv2.COLOR_BGR2GRAY)
+    grayt = cv2.cvtColor(rt, cv2.COLOR_BGR2GRAY)
+
+    sift = cv2.xfeatures2d.SIFT_create(contrastThreshold = SIFT_THRE)
+    
+    grays = grays[:, H:H*2]
     (kps, _) = sift.detectAndCompute(grays, None)
     if not len(kps):
         return None,None,None,None,None,None
-    pts=np.zeros([len(kps),2])
+    pts = np.zeros([len(kps),2])
     for j,m in enumerate(kps):
-        pts[j,:] = m.pt
-    pts[:,0]+=160
+        pts[j, :] = m.pt
+    pts[:, 0] += H
 
-    grayt=grayt[:,160:160*2]
+    grayt = grayt[:, H:H*2]
     (kpt, _) = sift.detectAndCompute(grayt, None)
     if not len(kpt):
         return None,None,None,None,None,None
-    ptt=np.zeros([len(kpt),2])
+    ptt = np.zeros([len(kpt),2])
     for j,m in enumerate(kpt):
-        ptt[j,:] = m.pt
-    ptt[:,0]+=160
+        ptt[j, :] = m.pt
+    ptt[:, 0] += H
 
     ptsNorm = pts.copy().astype('float')
-    ptsNorm[:,0]/=640
-    ptsNorm[:,1]/=160
+    ptsNorm[:, 0] /= W
+    ptsNorm[:, 1] /= H
     pttNorm = ptt.copy().astype('float')
-    pttNorm[:,0]/=640
-    pttNorm[:,1]/=160
+    pttNorm[:, 0] /= W
+    pttNorm[:, 1] /= H
 
-    fs0 = interpolate(feats,torch_op.v(ptsNorm))
-    ft0 = interpolate(featt,torch_op.v(pttNorm))
+    fs0 = interpolate(feats, torch_op.v(ptsNorm))
+    ft0 = interpolate(featt, torch_op.v(pttNorm))
 
     # find the most probable correspondence using feature map
     C = feats.shape[0]
-    fsselect=np.random.choice(range(pts.shape[0]),min(30,pts.shape[0]))
-    ftselect=np.random.choice(range(ptt.shape[0]),min(30,ptt.shape[0]))
-    dist=(fs0[:,fsselect].unsqueeze(2) - featt.view(C,1,-1)).pow(2).sum(0).view(len(fsselect),h,w)
+    fsselect = np.random.choice(range(pts.shape[0]), min(N_SIFT_MATCH, pts.shape[0]))
+    ftselect = np.random.choice(range(ptt.shape[0]), min(N_SIFT_MATCH, ptt.shape[0]))
+    dist = (fs0[:, fsselect].unsqueeze(2) - featt.view(C, 1, -1)).pow(2).sum(0).view(len(fsselect), H, W)
     
+    pttAug = Sampling(torch_op.npy(dist), TOPK)
+    dist = (ft0[:, ftselect].unsqueeze(2) - feats.view(C, 1, -1)).pow(2).sum(0).view(len(ftselect), H, W)
+    ptsAug = Sampling(torch_op.npy(dist), TOPK)
 
-    pttAug=Sampling(torch_op.npy(dist),2)
-    dist=(ft0[:,ftselect].unsqueeze(2) - feats.view(C,1,-1)).pow(2).sum(0).view(len(ftselect),h,w)
-    ptsAug=Sampling(torch_op.npy(dist),2)
+    pttAug = pttAug.reshape(-1, 2)
+    ptsAug = ptsAug.reshape(-1, 2)
+    valid = (pttAug[:, 0] < W-1) * (pttAug[:, 1] < H-1)
+    pttAug = pttAug[valid]
+    valid = (ptsAug[:, 0] < W-1) * (ptsAug[:, 1] < H-1)
+    ptsAug = ptsAug[valid]
 
-    pttAug=pttAug.reshape(-1,2)
-    ptsAug=ptsAug.reshape(-1,2)
-    valid=(pttAug[:,0]<w-1)*(pttAug[:,1]<h-1)
-    pttAug=pttAug[valid]
-    valid=(ptsAug[:,0]<w-1)*(ptsAug[:,1]<h-1)
-    ptsAug=ptsAug[valid]
+    pts = np.concatenate((pts, ptsAug))
+    ptt = np.concatenate((ptt, pttAug))
 
-    pts = np.concatenate((pts,ptsAug))
-    ptt = np.concatenate((ptt,pttAug))
-
-    N=30
-    xs=(np.random.rand(N)*640).astype('int').clip(0,640-2)
-    ys=(np.random.rand(N)*160).astype('int').clip(0,160-2)
-    ptsrnd=np.stack((xs,ys),1)
-    valid=((ptsrnd[:,0]>=160) *(ptsrnd[:,0]<=160*2))
-    ptsrnd=ptsrnd[~valid]
+    xs = (np.random.rand(N_RANDOM) * W).astype('int').clip(0, W-2)
+    ys = (np.random.rand(N_RANDOM) * H).astype('int').clip(0, H-2)
+    ptsrnd = np.stack((xs, ys), 1)
+    valid = ((ptsrnd[:, 0] >= H) * (ptsrnd[:, 0] <= H*2))
+    ptsrnd = ptsrnd[~valid]
     ptsrndNorm = ptsrnd.copy().astype('float')
-    ptsrndNorm[:,0]/=640
-    ptsrndNorm[:,1]/=160
-    fs0 = interpolate(feats,torch_op.v(ptsrndNorm))
-    fsselect=np.random.choice(range(ptsrnd.shape[0]),min(100,ptsrnd.shape[0]))
-    dist=(fs0[:,fsselect].unsqueeze(2) - featt.view(C,1,-1)).pow(2).sum(0).view(len(fsselect),h,w)
+    ptsrndNorm[:, 0] /= W
+    ptsrndNorm[:, 1] /= H
+    fs0 = interpolate(feats, torch_op.v(ptsrndNorm))
+    fsselect = np.random.choice(range(ptsrnd.shape[0]), min(N_RANDOM, ptsrnd.shape[0]))
+    dist = (fs0[:,fsselect].unsqueeze(2) - featt.view(C, 1, -1)).pow(2).sum(0).view(len(fsselect), H, W)
     
-    pttAug=Sampling(torch_op.npy(dist),2)
-    pttAug=pttAug.reshape(-1,2)
-    valid=(pttAug[:,0]<w-1)*(pttAug[:,1]<h-1)
-    pttAug=pttAug[valid]
-    pts=np.concatenate((pts,ptsrnd[fsselect]))
-    ptt=np.concatenate((ptt,pttAug))
+    pttAug = Sampling(torch_op.npy(dist), TOPK)
+    pttAug = pttAug.reshape(-1, 2)
+    valid = (pttAug[:, 0] < W-1) * (pttAug[:, 1] < H-1)
+    pttAug = pttAug[valid]
+    pts = np.concatenate((pts, ptsrnd[fsselect]))
+    ptt = np.concatenate((ptt, pttAug))
 
     ptsNorm = pts.copy().astype('float')
-    ptsNorm[:,0]/=640
-    ptsNorm[:,1]/=160
+    ptsNorm[:, 0] /= W
+    ptsNorm[:, 1] /= H
 
     pttNorm = ptt.copy().astype('float')
-    pttNorm[:,0]/=640
-    pttNorm[:,1]/=160
+    pttNorm[:, 0] /= W
+    pttNorm[:, 1] /= H
 
-    valid=(pts[:,0]>=160) *(pts[:,0]<=160*2)
+    valid = (pts[:, 0] >= H) * (pts[:, 0] <= H*2)
     ptsW = np.ones(len(valid))
-    ptsW[~valid]*=0.99
+    ptsW[~valid] *= MARKER
 
-    valid=(ptt[:,0]>=160) *(ptt[:,0]<=160*2)
+    valid = (ptt[:, 0] >= H) * (ptt[:, 0] <= H*2)
     pttW = np.ones(len(valid))
-    pttW[~valid]*=0.99
+    pttW[~valid] *= MARKER
 
     return pts,ptsNorm,ptsW,ptt,pttNorm,pttW
 
 
 def getKeypoint_kinect(rs,rt,feats,featt,rs_full,rt_full):
-    h,w=160,640
-    grays= cv2.cvtColor(rs,cv2.COLOR_BGR2GRAY)
-    grayt= cv2.cvtColor(rt,cv2.COLOR_BGR2GRAY)
+    H, W         = 160, 640
+    KINECT_W     = 640
+    KINECT_H     = 480
+    KINECT_FOV_W = 88
+    KINECT_FOV_H = 66
+    N_SIFT       = 300
+    N_SIFT_MATCH = 30
+    N_RANDOM     = 100
+    MARKER       = 0.99
+    SIFT_THRE    = 0.02
+    TOPK         = 2
 
-    sift = cv2.xfeatures2d.SIFT_create(contrastThreshold=0.02)
-    grays = cv2.cvtColor(rs_full,cv2.COLOR_BGR2GRAY)
+    grays = cv2.cvtColor(rs, cv2.COLOR_BGR2GRAY)
+    grayt = cv2.cvtColor(rt, cv2.COLOR_BGR2GRAY)
+
+    sift = cv2.xfeatures2d.SIFT_create(contrastThreshold = SIFT_THRE)
+    grays = cv2.cvtColor(rs_full, cv2.COLOR_BGR2GRAY)
     (kps, _) = sift.detectAndCompute(grays, None)
     if not len(kps):
         return None,None,None,None,None,None
-    pts=np.zeros([len(kps),2])
-    for j,m in enumerate(kps):
-        pts[j,:] = m.pt
-    pts[:,0] = pts[:,0]/640*88 # the observed region size of kinect camera is [88x66]
-    pts[:,1] = pts[:,1]/480*66
-    pts[:,0]+=160+80-44
-    pts[:,1]+=80-33
+    pts = np.zeros([len(kps), 2])
+    for j, m in enumerate(kps):
+        pts[j, :] = m.pt
+    pts[:,0] = pts[:,0] / KINECT_W * KINECT_FOV_W # the observed region size of kinect camera is [88x66]
+    pts[:,1] = pts[:,1] / KINECT_H * KINECT_FOV_H
+    pts[:,0] += H + H // 2 - KINECT_FOV_W // 2
+    pts[:,1] += H // 2 - KINECT_FOV_H // 2
 
-    grayt = cv2.cvtColor(rt_full,cv2.COLOR_BGR2GRAY)
+    grayt = cv2.cvtColor(rt_full, cv2.COLOR_BGR2GRAY)
     (kpt, _) = sift.detectAndCompute(grayt, None)
     if not len(kpt):
         return None,None,None,None,None,None
-    ptt=np.zeros([len(kpt),2])
-    for j,m in enumerate(kpt):
-        ptt[j,:] = m.pt
-    ptt[:,0] = ptt[:,0]/640*88
-    ptt[:,1] = ptt[:,1]/480*66
-    ptt[:,0]+=160+80-44
-    ptt[:,1]+=80-33
+    ptt = np.zeros([len(kpt), 2])
+    for j, m in enumerate(kpt):
+        ptt[j, :] = m.pt
+    ptt[:, 0] = ptt[:, 0] / KINECT_W * KINECT_FOV_W
+    ptt[:, 1] = ptt[:, 1] / KINECT_H * KINECT_FOV_H
+    ptt[:, 0] += H + H // 2 - KINECT_FOV_W // 2
+    ptt[:, 1] += H // 2 - KINECT_FOV_H // 2
 
-    pts=pts[np.random.choice(range(len(pts)),300),:]
-    ptt=ptt[np.random.choice(range(len(ptt)),300),:]
+    pts = pts[np.random.choice(range(len(pts)), N_SIFT), :]
+    ptt = ptt[np.random.choice(range(len(ptt)), N_SIFT), :]
     
     ptsNorm = pts.copy().astype('float')
-    ptsNorm[:,0]/=640
-    ptsNorm[:,1]/=160
+    ptsNorm[:, 0] /= W
+    ptsNorm[:, 1] /= H
     pttNorm = ptt.copy().astype('float')
-    pttNorm[:,0]/=640
-    pttNorm[:,1]/=160
+    pttNorm[:, 0] /= W
+    pttNorm[:, 1] /= H
 
-    fs0 = interpolate(feats,torch_op.v(ptsNorm))
-    ft0 = interpolate(featt,torch_op.v(pttNorm))
+    fs0 = interpolate(feats, torch_op.v(ptsNorm))
+    ft0 = interpolate(featt, torch_op.v(pttNorm))
 
     # find the most probable correspondence using feature map
     C = feats.shape[0]
-    fsselect=np.random.choice(range(pts.shape[0]),min(30,pts.shape[0]))
-    ftselect=np.random.choice(range(ptt.shape[0]),min(30,ptt.shape[0]))
-    dist=(fs0[:,fsselect].unsqueeze(2) - featt.view(C,1,-1)).pow(2).sum(0).view(len(fsselect),h,w)
-    pttAug=Sampling(torch_op.npy(dist),2)
-    dist=(ft0[:,ftselect].unsqueeze(2) - feats.view(C,1,-1)).pow(2).sum(0).view(len(ftselect),h,w)
-    ptsAug=Sampling(torch_op.npy(dist),2)
+    fsselect = np.random.choice(range(pts.shape[0]), min(N_SIFT_MATCH, pts.shape[0]))
+    ftselect = np.random.choice(range(ptt.shape[0]), min(N_SIFT_MATCH, ptt.shape[0]))
+    dist = (fs0[:, fsselect].unsqueeze(2) - featt.view(C, 1, -1)).pow(2).sum(0).view(len(fsselect), H, W)
+    pttAug = Sampling(torch_op.npy(dist), TOPK)
+    dist = (ft0[:, ftselect].unsqueeze(2) - feats.view(C, 1, -1)).pow(2).sum(0).view(len(ftselect), H, W)
+    ptsAug = Sampling(torch_op.npy(dist), TOPK)
 
-    pttAug=pttAug.reshape(-1,2)
-    ptsAug=ptsAug.reshape(-1,2)
-    valid=(pttAug[:,0]<w-1)*(pttAug[:,1]<h-1)
-    pttAug=pttAug[valid]
-    valid=(ptsAug[:,0]<w-1)*(ptsAug[:,1]<h-1)
-    ptsAug=ptsAug[valid]
+    pttAug = pttAug.reshape(-1, 2)
+    ptsAug = ptsAug.reshape(-1, 2)
+    valid = (pttAug[:, 0] < W-1) * (pttAug[:, 1] < H-1)
+    pttAug = pttAug[valid]
+    valid = (ptsAug[:, 0] < W-1) * (ptsAug[:, 1] < H-1)
+    ptsAug = ptsAug[valid]
 
-    pts = np.concatenate((pts,ptsAug))
-    ptt = np.concatenate((ptt,pttAug))
+    pts = np.concatenate((pts, ptsAug))
+    ptt = np.concatenate((ptt, pttAug))
 
     N=120
-    xs=(np.random.rand(N)*640).astype('int').clip(0,640-2)
-    ys=(np.random.rand(N)*160).astype('int').clip(0,160-2)
-    ptsrnd=np.stack((xs,ys),1)
+    xs = (np.random.rand(N) * W).astype('int').clip(0, W-2)
+    ys = (np.random.rand(N) * H).astype('int').clip(0, H-2)
+    ptsrnd = np.stack((xs, ys),1)
 
     # filter out observed region
-    valid=((ptsrnd[:,0]>=160+80-44) *(ptsrnd[:,0]<=160+80+44)*(ptsrnd[:,1]>=80-33) *(ptsrnd[:,1]<=80+33))
-    ptsrnd=ptsrnd[~valid]
+    valid=((ptsrnd[:, 0] >= H + H//2 - KINECT_FOV_W//2) *(ptsrnd[:, 0] <= H + H//2 + KINECT_FOV_W//2)*(ptsrnd[:, 1] >= H//2 - KINECT_FOV_H//2) * (ptsrnd[:, 1] <= H//2 + KINECT_FOV_H // 2))
+    ptsrnd = ptsrnd[~valid]
 
     ptsrndNorm = ptsrnd.copy().astype('float')
-    ptsrndNorm[:,0]/=640
-    ptsrndNorm[:,1]/=160
+    ptsrndNorm[:, 0] /= W
+    ptsrndNorm[:, 1] /= H
     fs0 = interpolate(feats,torch_op.v(ptsrndNorm))
-    fsselect=np.random.choice(range(ptsrnd.shape[0]),min(100,ptsrnd.shape[0]))
-    dist=(fs0[:,fsselect].unsqueeze(2) - featt.view(C,1,-1)).pow(2).sum(0).view(len(fsselect),h,w)
+    fsselect = np.random.choice(range(ptsrnd.shape[0]), min(N_RANDOM, ptsrnd.shape[0]))
+    dist = (fs0[:, fsselect].unsqueeze(2) - featt.view(C, 1, -1)).pow(2).sum(0).view(len(fsselect), H, W)
 
-    pttAug=Sampling(torch_op.npy(dist),2)
-    pttAug=pttAug.reshape(-1,2)
-    valid=(pttAug[:,0]<w-1)*(pttAug[:,1]<h-1)
-    pttAug=pttAug[valid]
-    pts=np.concatenate((pts,ptsrnd[fsselect]))
-    ptt=np.concatenate((ptt,pttAug))
+    pttAug = Sampling(torch_op.npy(dist), TOPK)
+    pttAug = pttAug.reshape(-1, 2)
+    valid = (pttAug[:, 0] < W - 1) * (pttAug[:, 1] < H - 1)
+    pttAug = pttAug[valid]
+    pts = np.concatenate((pts, ptsrnd[fsselect]))
+    ptt = np.concatenate((ptt, pttAug))
 
     ptsNorm = pts.copy().astype('float')
-    ptsNorm[:,0]/=640
-    ptsNorm[:,1]/=160
+    ptsNorm[:,0] /= W
+    ptsNorm[:,1] /= H
 
     pttNorm = ptt.copy().astype('float')
-    pttNorm[:,0]/=640
-    pttNorm[:,1]/=160
+    pttNorm[:,0] /= W
+    pttNorm[:,1] /= H
 
-    # hacks to get the observed region for kinect camera configuration. 
-    valid=((pts[:,0]>=160+80-44) *(pts[:,0]<=160+80+44)*(pts[:,1]>=80-33) *(pts[:,1]<=80+33))
+    # hacks to get the points belongs to kinect observed region. 
+    valid = ((pts[:, 0] >= H + H // 2 - KINECT_FOV_W // 2) * (pts[:, 0] <= H + H // 2 + KINECT_FOV_W // 2) * (pts[:, 1] >= H // 2 - KINECT_FOV_H // 2) * (pts[:, 1] <= H // 2 + KINECT_FOV_H // 2))
     ptsW = np.ones(len(valid))
-    ptsW[~valid]*=0.99
+    ptsW[~valid] *= MARKER
 
-    valid=((ptt[:,0]>=160+80-44) *(ptt[:,0]<=160+80+44)*(ptt[:,1]>=80-33) *(ptt[:,1]<=80+33))
+    valid = ((ptt[:, 0] >= H + H // 2 - KINECT_FOV_W // 2) * (ptt[:, 0] <= H + H // 2 + KINECT_FOV_W // 2) * (ptt[:, 1] >= H // 2 - KINECT_FOV_H // 2) * (ptt[:, 1] <= H // 2 + KINECT_FOV_H // 2))
     pttW = np.ones(len(valid))
-    pttW[~valid]*=0.99
+    pttW[~valid] *= MARKER
 
     return pts,ptsNorm,ptsW,ptt,pttNorm,pttW
 
-def Sampling(heatmap,K):
+def Sampling(heatmap, K):
     # heatmap: [n,h,w]
     # return: [n,K,2]
     heatmap = np.exp(-heatmap/2)
     n,h,w=heatmap.shape
     pt = np.zeros([n,K,2])
-    wsz=15
+    WINDOW_SZ = 15
     for i in range(n):
         for j in range(K):
             idx=np.argmax(heatmap[i])
             coord=np.unravel_index(idx,heatmap[i].shape)[::-1]
             pt[i,j,:]=coord
             # suppress the neighbors
-            topl=[max(0,coord[0]-wsz),max(0,coord[1]-wsz)]
-            botr=[min(w-1,coord[0]+wsz),min(h-1,coord[1]+wsz)]
+            topl=[max(0,coord[0] - WINDOW_SZ),max(0,coord[1] - WINDOW_SZ)]
+            botr=[min(w-1,coord[0] + WINDOW_SZ),min(h-1,coord[1] + WINDOW_SZ)]
             heatmap[i][topl[1]:botr[1],topl[0]:botr[0]] = heatmap[i].min()
     return pt

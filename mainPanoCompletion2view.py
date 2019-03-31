@@ -303,7 +303,6 @@ class learner(object):
             os.path.join(self.args.EXP_DIR_PARAMS, 'checkpoint_G_{0:04d}.pth.tar'.format(epoch)),clean=True,epoch=epoch)
 
     def load_checkpoint(self):
-        
         try:
             if self.args.model is not None:
                 net_path = self.args.model

@@ -68,9 +68,10 @@ def fit_horn87(allSP,allTP,allSN,allTN,allWP,allWN,mu):
     allWN: weight for normal
     mu:   a scalar weight for position
     """
-    SPmean = (allSP*allWP[:,np.newaxis]).sum(0)/(allWP.sum()+1e-12)
+    EPS = 1e-12
+    SPmean = (allSP*allWP[:,np.newaxis]).sum(0)/(allWP.sum()+EPS)
     allSPc = allSP - SPmean
-    TPmean = (allTP*allWP[:,np.newaxis]).sum(0)/(allWP.sum()+1e-12)
+    TPmean = (allTP*allWP[:,np.newaxis]).sum(0)/(allWP.sum()+EPS)
     allTPc = allTP - TPmean
     allS = np.concatenate((allSPc,allSN))
     allT = np.concatenate((allTPc,allTN))
@@ -99,12 +100,13 @@ def fit_spectral(allSP,allTP,allSN,allTN,allWP,allWN,w_i1i2j1j2,mu,row,col,numFe
     numFea_t: number of target keypoint
     """
     num_alter = 5
-    offset = 50
+    offset    = 50
+    EPS       = 1e-12
 
     # compute center
-    SPmean = (allSP*allWP[:,np.newaxis]).sum(0)/(allWP.sum()+1e-12)
+    SPmean = (allSP*allWP[:,np.newaxis]).sum(0)/(allWP.sum()+EPS)
     allSPc = allSP - SPmean
-    TPmean = (allTP*allWP[:,np.newaxis]).sum(0)/(allWP.sum()+1e-12)
+    TPmean = (allTP*allWP[:,np.newaxis]).sum(0)/(allWP.sum()+EPS)
     allTPc = allTP - TPmean
 
     # compute R,t
@@ -144,9 +146,9 @@ def fit_spectral(allSP,allTP,allSN,allTN,allWP,allWN,w_i1i2j1j2,mu,row,col,numFe
 
         # compute center
         allWP=allW[:len(allW)//2]
-        SPmean = (allSP*allWP[:,np.newaxis]).sum(0)/(allWP.sum()+1e-12)
+        SPmean = (allSP*allWP[:,np.newaxis]).sum(0)/(allWP.sum()+EPS)
         allSPc = allSP - SPmean
-        TPmean = (allTP*allWP[:,np.newaxis]).sum(0)/(allWP.sum()+1e-12)
+        TPmean = (allTP*allWP[:,np.newaxis]).sum(0)/(allWP.sum()+EPS)
         allTPc = allTP - TPmean
 
         allS = np.concatenate((allSPc,allSN))
@@ -177,15 +179,16 @@ def fit_irls(allSP,allTP,allSN,allTN,allWP,allWN,mu):
     mu:   a scalar weight for position
     """
     num_reweighted = 5
-    resSigma = 1
+    resSigma       = 1
+    EPS            = 1e-12
     allW = np.concatenate((allWP*mu,allWN))
     for j in range(num_reweighted):
         # get the weight for position
         allWP=allW[:len(allW)//2]
         # compute center
-        SPmean = (allSP*allWP[:,np.newaxis]).sum(0)/(allWP.sum()+1e-12)
+        SPmean = (allSP*allWP[:,np.newaxis]).sum(0)/(allWP.sum()+EPS)
         allSPc = allSP - SPmean
-        TPmean = (allTP*allWP[:,np.newaxis]).sum(0)/(allWP.sum()+1e-12)
+        TPmean = (allTP*allWP[:,np.newaxis]).sum(0)/(allWP.sum()+EPS)
         allTPc = allTP - TPmean
 
         allS = np.concatenate((allSPc,allSN))
@@ -223,19 +226,20 @@ def fit_irls_sm(allSP,allTP,allSN,allTN,allWP,allWN,w_i1i2j1j2,mu,row,col,numFea
     numFea_t: number of target keypoint
     """
     num_reweighted = 5
-    num_alter = 5
-    resSigma = 1
-    offset = 50
+    num_alter      = 5
+    resSigma       = 1
+    offset         = 50
+    EPS            = 1e-12
     allW = np.concatenate((allWP*mu,allWN))
-
+    
     # initialize R,t
     for j in range(num_reweighted):
         # get the weight for position
         allWP=allW[:len(allW)//2]
         # compute center
-        SPmean = (allSP*allWP[:,np.newaxis]).sum(0)/(allWP.sum()+1e-12)
+        SPmean = (allSP*allWP[:,np.newaxis]).sum(0)/(allWP.sum()+EPS)
         allSPc = allSP - SPmean
-        TPmean = (allTP*allWP[:,np.newaxis]).sum(0)/(allWP.sum()+1e-12)
+        TPmean = (allTP*allWP[:,np.newaxis]).sum(0)/(allWP.sum()+EPS)
         allTPc = allTP - TPmean
 
         allS = np.concatenate((allSPc,allSN))
@@ -284,9 +288,9 @@ def fit_irls_sm(allSP,allTP,allSN,allTN,allWP,allWN,w_i1i2j1j2,mu,row,col,numFea
             # get the weight for position
             allWP=allW[:len(allW)//2]
             # compute center
-            SPmean = (allSP*allWP[:,np.newaxis]).sum(0)/(allWP.sum()+1e-12)
+            SPmean = (allSP*allWP[:,np.newaxis]).sum(0)/(allWP.sum()+EPS)
             allSPc = allSP - SPmean
-            TPmean = (allTP*allWP[:,np.newaxis]).sum(0)/(allWP.sum()+1e-12)
+            TPmean = (allTP*allWP[:,np.newaxis]).sum(0)/(allWP.sum()+EPS)
             allTPc = allTP - TPmean
 
             allS = np.concatenate((allSPc,allSN))
@@ -320,6 +324,8 @@ def RelativePoseEstimation_helper(dataS, dataT,para):
         'weight': [k]
     para is an instance of opts(please refer to rputil.py)
     """
+    FEAT_SCALING = 100
+    OBS_W        = 1.2
     # keypoint position
     sourcePC = dataS['pc']
     targetPC = dataT['pc']
@@ -333,8 +339,8 @@ def RelativePoseEstimation_helper(dataS, dataT,para):
     targetPCw = dataT['weight']
     
     # keypoint descriptor
-    sourceDess = dataS['feat']/100.
-    targetDess = dataT['feat']/100.
+    sourceDess = dataS['feat'] / FEAT_SCALING.
+    targetDess = dataT['feat'] / FEAT_SCALING.
 
     # if two few keypoints, directly return
     if sourcePC.shape[0] < 3 or targetPC.shape[0]<3:
@@ -348,9 +354,9 @@ def RelativePoseEstimation_helper(dataS, dataT,para):
     pcWij = np.expand_dims(sourcePCw,1)*np.expand_dims(targetPCw,0)
     dij = np.power(np.expand_dims(sourceDess,1)-np.expand_dims(targetDess,0),2).sum(2)
     sigmaij = np.ones(pcWij.shape)*para.sigmaFeat
-    sigmaij[pcWij==1] = para.sigmaFeat/1.2 # require smaller distance if both keypoints are within observed region
-    wij = np.exp(np.divide(-dij,2*np.power(sigmaij/5,2)))
-    nm = np.linalg.norm(wij,axis=1,keepdims=True)
+    sigmaij[pcWij==1] = para.sigmaFeat/OBS_W # require smaller distance if both keypoints are within observed region
+    wij = np.exp(np.divide(-dij, 2*np.power(sigmaij/5, 2)))
+    nm = np.linalg.norm(wij, axis=1, keepdims=True)
     equalzero = (nm==0)
     nm[equalzero] = 1
     wij/=nm
@@ -359,12 +365,12 @@ def RelativePoseEstimation_helper(dataS, dataT,para):
     logger.info(f"wij great zero : {sum(wij.sum(1)!=0)}/{sum(wij.sum(0)!=0)}\n")
 
     # prune for top K correspondence for simplicity
-    topK = min(para.topK,wij.shape[1]-1)
-    topIdx = np.argpartition(-wij,topK,axis=1)[:,:topK]
+    topK = min(para.topK, wij.shape[1]-1)
+    topIdx = np.argpartition(-wij,topK,axis=1)[:, :topK]
     
-    corres = np.zeros([2, numFea_s*topK])
-    corres[0,:] = np.arange(numFea_s).repeat(topK)
-    corres[1,:] = topIdx.flatten()
+    corres = np.zeros([2, numFea_s * topK])
+    corres[0, :] = np.arange(numFea_s).repeat(topK)
+    corres[1, :] = topIdx.flatten()
     corres = corres.astype('int')
     num_corres = corres.shape[1]
 
@@ -392,7 +398,7 @@ def RelativePoseEstimation_helper(dataS, dataT,para):
 
     dis_s = np.linalg.norm(pci1 - pci2,axis=1)
     dis_t = np.linalg.norm(pcj1 - pcj2,axis=1)
-    d_i1i2j1j2 = np.power(dis_s - dis_t,2) # use abs?
+    d_i1i2j1j2 = np.power(dis_s - dis_t,2)
     
 
     filterIdx = np.logical_and(d_i1i2j1j2 < np.power(para.distThre,2),np.minimum(dis_s,dis_t) > 1.5*np.power(para.distSepThre,2))
@@ -458,7 +464,7 @@ def RelativePoseEstimation_helper(dataS, dataT,para):
     pi2w=sourcePCw[corres[0,idx]]
     pj2w=targetPCw[corres[1,idx]]
     ww_i1i2j1j2=pi1w*pi2w*pj1w*pj2w
-    w_i1i2j1j2[ww_i1i2j1j2!=1]*=0.6
+    w_i1i2j1j2[ww_i1i2j1j2!=1] *= 0.6
 
     if (w_i1i2j1j2!=0).sum() < 1:
         logger.info('stage3: not enough  !\n\n')
@@ -479,7 +485,7 @@ def RelativePoseEstimation_helper(dataS, dataT,para):
     allTP = np.concatenate((pj1,pj2))
     allSN = np.concatenate((ni1,ni2))
     allTN = np.concatenate((nj1,nj2))
-    allWP = np.concatenate((w_i1i2j1j2,w_i1i2j1j2))
+    allWP = np.concatenate((w_i1i2j1j2, w_i1i2j1j2))
     allWN = allWP.copy()
     
     if para.method == 'horn87':
@@ -573,7 +579,7 @@ def RelativePoseEstimationViaCompletion(net, data_s, data_t, args):
         dataset:
         para:
     """
-
+    EPS = 1e-12
     args.idx_f_start = 0        
     if 'rgb' in args.outputType:
         args.idx_f_start += 3
@@ -622,8 +628,8 @@ def RelativePoseEstimationViaCompletion(net, data_s, data_t, args):
             # replace the observed region with gt depth/normal
             data_sc['normal'] = (1-mask_s)*torch_op.npy(f0[0,3:6,:,:]).transpose(1,2,0)+mask_s*data_s['norm']
             data_tc['normal'] = (1-mask_t)*torch_op.npy(f1[0,3:6,:,:]).transpose(1,2,0)+mask_t*data_t['norm']
-            data_sc['normal']/= (np.linalg.norm(data_sc['normal'],axis=2,keepdims=True)+1e-6)
-            data_tc['normal']/= (np.linalg.norm(data_tc['normal'],axis=2,keepdims=True)+1e-6)
+            data_sc['normal']/= (np.linalg.norm(data_sc['normal'],axis=2,keepdims=True)+EPS)
+            data_tc['normal']/= (np.linalg.norm(data_tc['normal'],axis=2,keepdims=True)+EPS)
             data_sc['depth']  = (1-mask_s[:,:,0])*torch_op.npy(f0[0,6,:,:])+mask_s[:,:,0]*data_s['depth']
             data_tc['depth']  = (1-mask_t[:,:,0])*torch_op.npy(f1[0,6,:,:])+mask_t[:,:,0]*data_t['depth']
 
